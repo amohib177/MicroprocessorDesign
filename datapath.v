@@ -142,14 +142,14 @@ module alu (
 );
   always @* begin
     case (sel_alu)
-      3'b000: OUT_alu = inA_alu + inB_alu;
-      3'b001: OUT_alu = inA_alu - inB_alu;
-      3'b010: OUT_alu = inA_alu & inB_alu;
-      3'b011: OUT_alu = inA_alu | inB_alu;
-      3'b100: OUT_alu = inA_alu ^ inB_alu;
+      3'b000: OUT_alu = inA_alu;
+      3'b001: OUT_alu = inA_alu + inB_alu;
+      3'b010: OUT_alu = inA_alu - inB_alu;
+      3'b011: OUT_alu = inA_alu & inB_alu;
+      3'b100: OUT_alu = inA_alu | inB_alu;
       3'b101: OUT_alu = ~inA_alu;
-      3'b110: OUT_alu = inA_alu << 1;
-      3'b111: OUT_alu = inA_alu >> 1;
+      3'b110: OUT_alu = inA_alu + 1;
+      3'b111: OUT_alu = inA_alu - 1;
       default: OUT_alu = 8'b0;
     endcase
   end
@@ -162,10 +162,10 @@ module shifter (
 );
   always @* begin
     case (sel_shift)
-      2'b00: output_shift = input_shift << 1;
-      2'b01: output_shift = input_shift >> 1;
-      2'b10: output_shift = input_shift << 2;
-      2'b11: output_shift = input_shift >> 2;
+      2'b00: output_shift = input_shift ;
+      2'b01: output_shift = input_shift << 1;
+      2'b10: output_shift = input_shift >> 1;
+      2'b11: output_shift = {input_shift[0],input_shift[7:1]};
       default: output_shift = 8'b0;
     endcase
   end
