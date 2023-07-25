@@ -1,3 +1,8 @@
+`timescale 1ns/1ps
+
+
+
+
 module cu(
    input clk_ctrl,
     input rst_ctrl,
@@ -14,15 +19,25 @@ module cu(
     input zero_ctrl,
     input positive_ctrl,
     input [7:0] INSTRUCTION,
-    output [4:0] PC
-    
-
+    output [3:0] PC,
+    input [7:0] input_ctrl,
+    output [7:0] output_ctrl
 );
-reg[7:0] input_ctrl;
-wire [7:0] output_ctrl; 
+reg [7:0] INSTRUCTION;
+ reg mmwr_ctrl;
+ reg [3:0] mmadr_ctrl;
+ reg outen_ctrl;
+ reg rfwr_ctrl;
+ reg [1:0] shiftsel_ctrl;
+reg [2:0] alusel_ctrl;
+reg [7:0] imm_ctrl;
+    reg accwr_ctrl;
+    reg [2:0] rfaddr_ctrl;
+reg [1:0] muxsel_ctrl;
+reg [3:0] PC;
 reg zero_flag;
 reg positive_flag;
-
+reg[3:0] OPCODE;
 
 parameter S0 = 5'b00000;
   parameter S1 = 5'b00001;
@@ -54,8 +69,28 @@ parameter S0 = 5'b00000;
 
   reg[4:0] state;
 
+  datapath mydata_cpu (
+    .clk_dp(clk_ctrl) ,   
+    .rst_dp(rst_ctrl) ,   
+    .muxsel_dp(muxsel_ctrl) , 
+    .imm_dp(imm_ctrl),  
+    .input_dp(input_ctrl),  
+    .accwr_dp (accwr_ctrl) ,
+    .rfaddr_dp(rfaddr_ctrl),
+    .mmadr_dp(mmadr_ctrl),
+    .mmwr_dp(mmwr_ctrl),
+    .rfwr_dp(rfwr_ctrl)  , 
+    .alusel_dp(alusel_ctrl), 
+    .shiftsel_dp(shiftsel_ctrl), 
+    .outen_dp(outen_ctrl), 
+    .zero_dp(zero_ctrl), 
+    .positive_dp(positive_ctrl),
+    .output_dp(output_ctrl)
+ );
+
   always @(posedge rst_ctrl or posedge clk_ctrl) begin
     if (rst_ctrl) begin
+      #1
         PC = 0;
         muxsel_ctrl <= 2'b00;
         imm_ctrl <= 8'b0;
@@ -74,8 +109,9 @@ parameter S0 = 5'b00000;
         case (state)
   //fetch instruction
             S1: begin
-                IR <= PM[PC];
-                OPCODE <= IR[7:4];
+              #1
+                INSTRUCTION <= PM[PC];
+                OPCODE <= INSTRUCTION[7:4];
                 PC = PC + 1;
                 muxsel_ctrl <= 2'b00;
                 imm_ctrl <= 8'b0;
@@ -92,9 +128,9 @@ parameter S0 = 5'b00000;
 
 
             //decode instruction
-            S2:
-                begin 
-               case(OPCODE)
+            S2: begin
+             case(OPCODE)
+            
                   4'b0000: state <=  S1; // NOP
             4'b0001: state <=  S10; // LDA
             4'b0010: state <=  S11; // STA
@@ -128,7 +164,7 @@ parameter S0 = 5'b00000;
                 default: state <= S99;  
               endcase  
             end
-            default: state <= S99;
+            
 
             endcase
           muxsel_ctrl <= 2'b00;
@@ -157,7 +193,7 @@ parameter S0 = 5'b00000;
           outen_ctrl <= 1'b0;
            mmadr_ctrl<= 4'b0000;
           mmwr_ctrl<= 1'b0;
-          state <= S1;
+          state <=S1;
      
           zero_flag <= zero_ctrl;
           positive_flag <= positive_ctrl;
@@ -237,7 +273,7 @@ parameter S0 = 5'b00000;
      S14: //LDI
      begin
          muxsel_ctrl <= 2'b10;
-         input_ctrl <= {4'b0000,IR[3:0]};
+          input_ctrl <= {4'b0000,IR[3:0]};
          accwr_ctrl <= 1'b1;
           rfaddr_ctrl <=3'b000;
           rfwr_ctrl <= 1'b0;
@@ -249,8 +285,8 @@ parameter S0 = 5'b00000;
           state <=S8;
      end
   
-  S210: //JMP
-     begin
+  S21: //JMP
+  begin
        if(IR[3:0]==4'b0000)
          begin
          //absolute
@@ -278,11 +314,9 @@ parameter S0 = 5'b00000;
            mmadr_ctrl<= 4'b0000;
           mmwr_ctrl<= 1'b0;
           state <=S1;
-     end
-  
-   S220: //JZ
-   
-     if(zero_flag==1'b1) begin
+  end
+   S22: //JZ
+     begin
             if (zero_flag)
             begin
                 if (IR[3:0] == 4'b0000)
@@ -299,7 +333,6 @@ parameter S0 = 5'b00000;
                     PC <= PC - {1'b0, IR[2:0]} - 1;
                 end
             end
-     
         
 	
 	muxsel_ctrl <= 2'b00;
@@ -315,7 +348,7 @@ parameter S0 = 5'b00000;
 	state <= S1; 
      end
        
-    S230: //JNZ
+    S23: //JNZ
     begin
       if (zero_flag == 1'b0)
         begin                       
@@ -347,7 +380,7 @@ parameter S0 = 5'b00000;
 	state <= S1;
    end
 
-   S240:  //JP
+   S24:  //JP
     begin
       if (positive_flag)  
         begin
@@ -575,24 +608,12 @@ parameter S0 = 5'b00000;
     end
   endcase
 end
+  
+
+
   end
-datapath mydata_cpu(
-    .clk_dp(clk_ctrl) ,   
-    .rst_dp(rst_ctrl) ,   
-    .muxsel_dp(muxsel_ctrl) , 
-    .imm_dp(imm_ctrl),  
-    .input_dp(input_ctrl),  
-    .accwr_dp (accwr_ctrl) ,
-    .rfaddr_dp(rfaddr_ctrl),
-    .mmadr_dp(mmadr_ctrl),
-    .mmwr_dp(mmwr_ctrl),
-    .rfwr_dp(rfwr_ctrl)  , 
-    .alusel_dp(alusel_ctrl), 
-    .shiftsel_dp(shiftsel_ctrl), 
-    .outen_dp(outen_ctrl), 
-    .zero_dp(zero_ctrl), 
-    .positive_dp(positive_ctrl),
-    .output_dp(output_ctrl)
- );
+  
+  
+    
   
 endmodule
