@@ -1,13 +1,17 @@
-module datapath(
-  //ports
+ 
+ `timescale 1ns/1ps
+ 
+  module datapath(//ports
   input clk_dp ,   //clock
   input rst_dp ,   //reset
-  input [1:0] muxsel_dp ,  //2isto1 Multiplexer
+  input [1:0] muxsel_dp ,  //2 isto 1 Multiplexer
   input [7:0] imm_dp,  //internal memory data
   input [7:0] input_dp,  //direct input
   input accwr_dp  , //accumulator writeport sel
-  input [2:0] rfaddr_dp,  //registerfileaddress sel(for 8 register files)
-  input rfwr_dp  , //registerfile write port 
+  input [2:0] rfaddr_dp,  //register file address sel(for 8 register files)
+  input [3:0] mmadr_dp, //memory address sel
+  input rfwr_dp  , //registerfile write port
+  input mmwr_dp,//memory write port
   input [2:0] alusel_dp, //ALU operation selector
   input [1:0] shiftsel_dp, //Shifter operation sel
   input outen_dp, //enable o/p
@@ -48,7 +52,8 @@ module datapath(
     .input_rf(C_accout),
     .output_rf(C_rfout)
   );
-
+   
+  
   
   alu alu_dp ( //ALU instantiation
     .sel_alu(alusel_dp),
@@ -70,6 +75,9 @@ module datapath(
     .D(C_accout),
     .Y(output_dp)
   );
+
+  
+
 
   assign zero_dp = (C_muxout == 8'b00000000) ? 1'b1 : 1'b0;
   assign positive_dp = ~C_muxout[7];
@@ -103,6 +111,7 @@ module acc (
   output reg [7:0] output_acc
 );
   always @(posedge clk_acc or posedge rst_acc) begin
+   #1
     if (rst_acc) begin
       output_acc <= 8'b0;
     end
@@ -124,6 +133,7 @@ module reg_file (
   reg [7:0] regs_rf [0:7];
 
   always @(posedge clk_rf) begin
+    #1
     if (wr_rf) begin
       regs_rf[addr_rf] <= input_rf;
     end
@@ -176,5 +186,9 @@ module tristatebuffer (
   input [7:0] D,
   output [7:0] Y
 );
+
   assign Y = (E == 1'b1) ? D : 8'bz;
 endmodule
+
+
+
