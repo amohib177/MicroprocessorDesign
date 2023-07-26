@@ -18,12 +18,13 @@ module cu(
     output outen_ctrl,
     input zero_ctrl,
     input positive_ctrl,
-    input [7:0] INSTRUCTION,
+    output [7:0] INSTRUCTION,
     output [3:0] PC,
-    input [7:0] input_ctrl,
+    output [7:0] input_ctrl,
     output [7:0] output_ctrl
 );
 reg [7:0] INSTRUCTION;
+reg [7:0] input_ctrl;
  reg mmwr_ctrl;
  reg [3:0] mmadr_ctrl;
  reg outen_ctrl;
@@ -110,7 +111,7 @@ parameter S0 = 5'b00000;
   //fetch instruction
             S1: begin
               #1
-                INSTRUCTION <= PM[PC];
+              
                 OPCODE <= INSTRUCTION[7:4];
                 PC = PC + 1;
                 muxsel_ctrl <= 2'b00;
@@ -123,7 +124,7 @@ parameter S0 = 5'b00000;
                 outen_ctrl <= 1'b0;
                 mmadr_ctrl<= 4'b0000;
                 mmwr_ctrl<= 1'b0;
-                state<= s2;
+                state <= S2;
             end
 
 
@@ -137,16 +138,16 @@ parameter S0 = 5'b00000;
             4'b0011: state <=  S12; // LDM
             4'b0100: state <= S13; // STM
             4'b0101: state <=  S14; // LDI
-            4'b0110: state <= S210; // JMP
-            4'b0111: state <=  S220; // JZ
-            4'b1000: state <= S230; // JNZ
-            4'b1001: state <= S240; // JP
+            4'b0110: state <= S21; // JMP
+            4'b0111: state <=  S22; // JZ
+            4'b1000: state <= S23; // JNZ
+            4'b1001: state <= S24; // JP
             4'b1010: state <=  S30; // ANDA
             4'b1011: state <= S31; // ORA
             4'b1100: state <=  S32; // ADD
             4'b1101: state <=  S33; // SUB
             4'b1110: begin // SOI
- 		case (IR[2:0])
+ 		case (INSTRUCTION[2:0])
                 3'b000: state <= S41; // NOTA
                 3'b001: state <= S42; // INC
                 3'b010: state <= S43; // DEC
@@ -157,7 +158,7 @@ parameter S0 = 5'b00000;
               endcase
             end
               4'b1111: begin // MISC
-              case (IR[1:0])
+              case (INSTRUCTION[1:0])
                 2'b00: state <= S51; // INA
                 2'b01: state <=  S52; // OUTA
                 2'b10: state <=  S99; // HALT
@@ -183,7 +184,6 @@ parameter S0 = 5'b00000;
        S8:
        begin
          muxsel_ctrl <= 2'b00;
-         IN= 8'b0;
          imm_ctrl <= 8'b00000000;
          accwr_ctrl <= 1'b0;
           rfaddr_ctrl <= 3'b000;
@@ -216,8 +216,8 @@ parameter S0 = 5'b00000;
           begin
     	muxsel_ctrl <= 2'b01;
           imm_ctrl <= 8'b00000000;
-	accwr_ctr <= 1'b1;
-        rfaddr_ctrl <= IR[2:0];
+	accwr_ctrl <= 1'b1;
+        rfaddr_ctrl <= INSTRUCTION[2:0];
 	rfwr_ctrl <= 1'b0;
        alusel_ctrl <= 3'b000;
           shiftsel_ctrl <= 2'b00;
@@ -231,7 +231,7 @@ parameter S0 = 5'b00000;
         muxsel_ctrl <= 2'b00;
          imm_ctrl <= 8'b00000000;
          accwr_ctrl <= 1'b0;
-          rfaddr_ctrl <=IR[2:0] ;
+          rfaddr_ctrl <=INSTRUCTION[2:0] ;
           rfwr_ctrl <= 1'b1;
           alusel_ctrl <= 3'b000;
           shiftsel_ctrl <= 2'b00;
@@ -250,7 +250,7 @@ parameter S0 = 5'b00000;
           alusel_ctrl <= 3'b000;
           shiftsel_ctrl <= 2'b00;
           outen_ctrl <= 1'b0;
-           mmadr_ctrl<= IR[3:0];
+           mmadr_ctrl<= INSTRUCTION[3:0];
           mmwr_ctrl<= 1'b0;
           state <=S9;
     end
@@ -265,7 +265,7 @@ parameter S0 = 5'b00000;
           alusel_ctrl <= 3'b000;
           shiftsel_ctrl <= 2'b00;
           outen_ctrl <= 1'b0;
-           mmadr_ctrl<= IR[3:0];
+           mmadr_ctrl<= INSTRUCTION[3:0];
           mmwr_ctrl<= 1'b1;
           state <=S9;
      end
@@ -273,7 +273,7 @@ parameter S0 = 5'b00000;
      S14: //LDI
      begin
          muxsel_ctrl <= 2'b10;
-          input_ctrl <= {4'b0000,IR[3:0]};
+          input_ctrl <= {4'b0000,INSTRUCTION[3:0]};
          accwr_ctrl <= 1'b1;
           rfaddr_ctrl <=3'b000;
           rfwr_ctrl <= 1'b0;
@@ -287,22 +287,22 @@ parameter S0 = 5'b00000;
   
   S21: //JMP
   begin
-       if(IR[3:0]==4'b0000)
+       if(INSTRUCTION[3:0]==4'b0000)
          begin
          //absolute
-        IR <= PM[PC];  //get next byte for absolute address
-        PC = IR[3:0];
+          //get next byte for absolute address
+        PC = INSTRUCTION[3:0];
          end
-        else if(IR[3] == 1'b0)
+        else if(INSTRUCTION[3] == 1'b0)
         begin  
 	//relative positive
          //minus 1 because PC has already incremented
-          PC = PC + {1'b0, IR[2:0]} - 1;
+          PC = PC + {1'b0, INSTRUCTION[2:0]} - 1;
          end  
 	else 
           begin
         //relative negative
-	  PC = PC - {1'b0, IR[2:0]} - 1;
+	  PC = PC - {1'b0, INSTRUCTION[2:0]} - 1;
           end
         muxsel_ctrl <= 2'b00;
         imm_ctrl <= 8'b00000000;
@@ -319,18 +319,18 @@ parameter S0 = 5'b00000;
      begin
             if (zero_flag)
             begin
-                if (IR[3:0] == 4'b0000)
+                if (INSTRUCTION[3:0] == 4'b0000)
                 begin
-                    IR <= PM[PC];
-                    PC <= IR[3:0];
+                    
+                    PC <= INSTRUCTION[3:0];
                 end
-                else if (IR[3] == 1'b0)
+                else if (INSTRUCTION[3] == 1'b0)
                 begin
-                    PC <= PC + {1'b0, IR[2:0]} - 1;
+                    PC <= PC + {1'b0, INSTRUCTION[2:0]} - 1;
                 end
                 else
                 begin
-                    PC <= PC - {1'b0, IR[2:0]} - 1;
+                    PC <= PC - {1'b0, INSTRUCTION[2:0]} - 1;
                 end
             end
         
@@ -352,18 +352,18 @@ parameter S0 = 5'b00000;
     begin
       if (zero_flag == 1'b0)
         begin                       
-          if (IR[3:0] == 4'b0000)
+          if (INSTRUCTION[3:0] == 4'b0000)
             begin                 //absolute
-              IR <= PM[PC];  //get next byte for absolute address
-              PC <= IR[3:0];
+               //get next byte for absolute address
+              PC <= INSTRUCTION[3:0];
             end
-          else if (IR[3] == 1'b0) //relative positive 
+          else if (INSTRUCTION[3] == 1'b0) //relative positive 
             begin      //minus 1 because PC has already incremented
-              PC <= PC + {1'b0, IR[2:0]} - 1;
+              PC <= PC + {1'b0, INSTRUCTION[2:0]} - 1;
             end
           else         //relative negative
             begin
-              PC <= PC - {1'b0, IR[2:0]} - 1;
+              PC <= PC - {1'b0, INSTRUCTION[2:0]} - 1;
             end
         end
 
@@ -384,18 +384,18 @@ parameter S0 = 5'b00000;
     begin
       if (positive_flag)  
         begin
-          if (IR[3:0] == 4'b0000)
+          if (INSTRUCTION[3:0] == 4'b0000)
             begin                //absolute
-              IR <= PM[PC];	 //get next byte for absolute address
-              PC <= IR[4:0];
+              	 //get next byte for absolute address
+              PC <= INSTRUCTION[4:0];
             end
-          else if (IR[3] == 1'b0)  //relative positive
+          else if (INSTRUCTION[3] == 1'b0)  //relative positive
             begin //minus 1 because PC has already increamented
-              PC <= PC + {1'b0, IR[2:0]} - 1;
+              PC <= PC + {1'b0, INSTRUCTION[2:0]} - 1;
             end
           else //relative negative
             begin
-              PC <= PC - {1'b0, IR[2:0]} - 1;
+              PC <= PC - {1'b0, INSTRUCTION[2:0]} - 1;
             end
         end
     
@@ -417,7 +417,7 @@ parameter S0 = 5'b00000;
         begin
             muxsel_ctrl <= 2'b00;
             imm_ctrl <= 8'b0;
-            rfaddr_ctrl <= IR[2:0];
+            rfaddr_ctrl <= INSTRUCTION[2:0];
             rfwr_ctrl <= 1'b0;
             alusel_ctrl <= 3'b011;
             shiftsel_ctrl <= 2'b00;
@@ -432,7 +432,7 @@ parameter S0 = 5'b00000;
     begin		//ORA
       muxsel_ctrl <= 2'b00;
       imm_ctrl <= 8'b0;
-      rfaddr_ctrl <= IR[2:0];
+      rfaddr_ctrl <= INSTRUCTION[2:0];
       rfwr_ctrl <= 1'b0;
       alusel_ctrl <= 3'b100;
       shiftsel_ctrl <= 2'b00;
@@ -447,7 +447,7 @@ parameter S0 = 5'b00000;
      S32: begin   // ADD
       muxsel_ctrl <= 2'b00;
       imm_ctrl <= 8'b0;
-      rfaddr_ctrl <= IR[2:0];
+      rfaddr_ctrl <= INSTRUCTION[2:0];
       rfwr_ctrl <= 1'b0;
       alusel_ctrl <= 3'b001;
       shiftsel_ctrl <= 2'b00;
@@ -460,7 +460,7 @@ parameter S0 = 5'b00000;
      S33: begin   // SUB
       muxsel_ctrl <= 2'b00;
       imm_ctrl <= 8'b0;
-      rfaddr_ctrl <= IR[2:0];
+      rfaddr_ctrl <= INSTRUCTION[2:0];
       rfwr_ctrl <= 1'b0;
       alusel_ctrl <= 3'b010;
       shiftsel_ctrl <= 2'b00;
