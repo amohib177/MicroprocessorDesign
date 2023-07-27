@@ -1,35 +1,36 @@
 
 
 `timescale 1ns/1ps
-`include"control_unit.v"
-`include"datapath.v"
-
+`include "cu4.v"
 module cpu_tb;
 reg CLk, reset;
 wire [3:0] PC;
 reg [7:0] INSTRUCTION;
 wire [1:0] muxsel_tb;
-reg [7:0] imm_tb;
+wire [7:0] imm_tb;
 wire accwr_tb;
 wire [2:0] rfaddr_tb;
-reg [3:0] mmadr_tb;
+wire [3:0] mmadr_tb;
 wire rfwr_tb;
-reg mmwr_tb;
+wire mmwr_tb;
 wire [2:0] alusel_tb;
 wire [1:0] shiftsel_tb;
 wire outen_tb;
-wire zero_tb;
-wire positive_tb;
-reg  [7:0] input_tb = 8'b00111101;
+  reg zero_tb;
+reg positive_tb;
+wire  [7:0] input_tb = 8'b00111101;
 wire [7:0] output_tb; 
+wire[7:0] in;
 
 // memory for 16 8 bit instructions.
 reg[7:0] PM[15:0];
 
 always@(PC)
 begin
-    #2
-    INSTRUCTION = PM[PC];
+    #5
+    
+    INSTRUCTION <= PM[PC];
+   
 end
 
 initial
@@ -68,6 +69,7 @@ end
     .zero_ctrl(zero_tb),
     .positive_ctrl(positive_tb),
     .INSTRUCTION(INSTRUCTION),
+
     .input_ctrl(input_tb),
     .output_ctrl(output_tb),
     .PC(PC)
@@ -76,16 +78,16 @@ end
    initial
    begin
     $dumpfile("waveform.vcd");
-    $dumpvars(0, testbench);
+    $dumpvars(0, cpu_tb);
 
 CLk= 1'b1;
 
 reset= 1'b0;
 
-#2
+#5
 reset= 1'b1;
 
-#4
+#10
 reset= 1'b0;
 
 #500
