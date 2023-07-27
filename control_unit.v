@@ -3,6 +3,9 @@
 
 
 
+
+
+
 module cu(
    input clk_ctrl,
     input rst_ctrl,
@@ -18,12 +21,12 @@ module cu(
     output outen_ctrl,
     input zero_ctrl,
     input positive_ctrl,
-    output [7:0] INSTRUCTION,
+    input [7:0] INSTRUCTION,
     output [3:0] PC,
     output [7:0] input_ctrl,
     output [7:0] output_ctrl
 );
-reg [7:0] INSTRUCTION;
+
 reg [7:0] input_ctrl;
  reg mmwr_ctrl;
  reg [3:0] mmadr_ctrl;
